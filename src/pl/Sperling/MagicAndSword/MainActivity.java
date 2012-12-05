@@ -135,6 +135,7 @@ public class MainActivity extends BaseGameActivity implements Scene.IOnSceneTouc
 
         HUD hud = new HUD();
         hud.attachChild(fpsText);
+        hud.attachChild(zoomButton.getZoomButtonSprite());
         //hud.attachChild(zoomButton);
 
         mEngine.getCamera().setHUD(hud);

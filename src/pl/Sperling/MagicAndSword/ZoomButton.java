@@ -21,6 +21,7 @@ package pl.Sperling.MagicAndSword;
 import android.content.Context;
 import org.anddev.andengine.engine.camera.ZoomCamera;
 import org.anddev.andengine.entity.sprite.Sprite;
+import org.anddev.andengine.input.touch.TouchEvent;
 import org.anddev.andengine.opengl.texture.TextureManager;
 import org.anddev.andengine.opengl.texture.TextureOptions;
 import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
@@ -32,20 +33,36 @@ import org.anddev.andengine.opengl.texture.region.TextureRegion;
  * Date: 05.12.12
  * Time: 11:39
  */
-public class ZoomButton {
+public class ZoomButton extends Sprite {
 
     private ZoomCamera camera;
     private Sprite zoomButtonSprite;
     private BitmapTextureAtlas zoomButtonTextureAtlas;
     private TextureRegion zoomButtonTextureRegion;
 
-    public ZoomButton(ZoomCamera cam) {
-        camera = cam;
+    public ZoomButton(float pX, float pY, TextureRegion pTextureRegion) {
+        super(pX, pY, pTextureRegion);
     }
-    
+
+    /*public ZoomButton(ZoomCamera cam) {
+        camera = cam;
+
+    } */
+
+    @Override
+    public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+        return super.onAreaTouched(pSceneTouchEvent, pTouchAreaLocalX, pTouchAreaLocalY);    //To change body of overridden methods use File | Settings | File Templates.
+    }
+
     public void loadResources(Context context, TextureManager textureManager) {
         zoomButtonTextureAtlas = new BitmapTextureAtlas(256, 256, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
         zoomButtonTextureRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(zoomButtonTextureAtlas, context, "gfx/zombie-100pix.png", 0, 0);
         textureManager.loadTexture(zoomButtonTextureAtlas);
+
+        //zoomButtonSprite = new Sprite(64, 64, zoomButtonTextureRegion);
+    }
+
+    public Sprite getZoomButtonSprite() {
+        return zoomButtonSprite;
     }
 }
