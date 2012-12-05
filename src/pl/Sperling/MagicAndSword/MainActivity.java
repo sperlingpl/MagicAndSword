@@ -18,10 +18,8 @@
 
 package pl.Sperling.MagicAndSword;
 
-import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.os.Bundle;
 import android.view.Display;
 import org.anddev.andengine.engine.Engine;
 import org.anddev.andengine.engine.camera.ZoomCamera;
@@ -40,7 +38,6 @@ import org.anddev.andengine.extension.input.touch.detector.PinchZoomDetector;
 import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
 import org.anddev.andengine.input.touch.TouchEvent;
 import org.anddev.andengine.input.touch.detector.ClickDetector;
-import org.anddev.andengine.input.touch.detector.ScrollDetector;
 import org.anddev.andengine.input.touch.detector.SurfaceScrollDetector;
 import org.anddev.andengine.opengl.font.Font;
 import org.anddev.andengine.opengl.texture.TextureOptions;
@@ -49,18 +46,15 @@ import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextur
 import org.anddev.andengine.opengl.texture.region.TextureRegion;
 import org.anddev.andengine.ui.activity.BaseGameActivity;
 
-import java.nio.channels.NonWritableChannelException;
-
-public class MainActivity extends BaseGameActivity implements ScrollDetector.IScrollDetectorListener,
-        Scene.IOnSceneTouchListener, ClickDetector.IClickDetectorListener,
-        PinchZoomDetector.IPinchZoomDetectorListener {
+public class MainActivity extends BaseGameActivity implements Scene.IOnSceneTouchListener, ClickDetector.IClickDetectorListener {
 
     private int cameraWidth, cameraHeight;
     private ZoomCamera camera;
     private Font font;
     private SurfaceScrollDetector scrollDetector;
     private PinchZoomDetector zoomDetector;
-    private float zoomFactor;
+    private ClickDetector clickDetector;
+    private MapScroller mapScroller;
     private BitmapTextureAtlas fontTextureAtlas;
     private ChangeableText fpsText;
 
@@ -68,9 +62,11 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
     private TextureRegion tileTextureRegion;
     private Sprite[][] tiles;
 
-    private BitmapTextureAtlas zoomButtonTextureAtlas;
-    private TextureRegion zoomButtonTextureRegion;
-    private Sprite zoomButton;
+    //private BitmapTextureAtlas zoomButtonTextureAtlas;
+    //private TextureRegion zoomButtonTextureRegion;
+    //private Sprite zoomButton;
+    
+    private ZoomButton zoomButton;
 
     @Override
     public Engine onLoadEngine() {
@@ -83,6 +79,8 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
 
         camera.setBounds(-3 * 64, 43 * 64, -3 * 64, 43 * 64);
         camera.setBoundsEnabled(true);
+        
+        mapScroller = new MapScroller(camera);
 
         final Engine engine = new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(cameraWidth, cameraHeight), camera));
 
@@ -96,6 +94,8 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
         } else {
             Settings.setMultitouch(false);
         }
+        
+        zoomButton = new ZoomButton(camera);
 
         return engine;
     }
@@ -111,9 +111,11 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
         tileTextureRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(tileTextureAtlas, this, "gfx/ui_ball_1.png", 0, 0);
         mEngine.getTextureManager().loadTexture(tileTextureAtlas);
 
-        zoomButtonTextureAtlas = new BitmapTextureAtlas(256, 256, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
-        zoomButtonTextureRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(zoomButtonTextureAtlas, this, "gfx/zombie-100pix.png", 0, 0);
-        mEngine.getTextureManager().loadTexture(zoomButtonTextureAtlas);
+        //zoomButtonTextureAtlas = new BitmapTextureAtlas(256, 256, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
+        //zoomButtonTextureRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(zoomButtonTextureAtlas, this, "gfx/zombie-100pix.png", 0, 0);
+        //mEngine.getTextureManager().loadTexture(zoomButtonTextureAtlas);
+        
+        zoomButton.loadResources(this, mEngine.getTextureManager());
     }
 
     @Override
@@ -121,17 +123,20 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
         Scene scene = new Scene();
         scene.setOnAreaTouchTraversalFrontToBack();
 
-        scrollDetector = new SurfaceScrollDetector(this);
+        scrollDetector = new SurfaceScrollDetector(mapScroller);
         scrollDetector.setEnabled(true);
+        
+        clickDetector = new ClickDetector(this);
 
         fpsText = new ChangeableText(10, 10, font, "FPS: 0", 30);
         //scene.attachChild(fpsText);
 
-        zoomButton = new Sprite(64, 64, zoomButtonTextureRegion);
+        //zoomButton = new Sprite(64, 64, zoomButtonTextureRegion);
 
         HUD hud = new HUD();
         hud.attachChild(fpsText);
-        hud.attachChild(zoomButton);
+        //hud.attachChild(zoomButton);
+
         mEngine.getCamera().setHUD(hud);
 
         final FPSCounter fpsCounter = new FPSCounter();
@@ -144,9 +149,9 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
             }
         }));
 
-        tiles = new Sprite[40][40];
-        for(int i = 0; i < 40; i++) {
-            for(int j = 0; j < 40; j++) {
+        tiles = new Sprite[20][20];
+        for(int i = 0; i < 20; i++) {
+            for(int j = 0; j < 20; j++) {
                 tiles[i][j] = new Sprite(i * 64, j * 64, tileTextureRegion);
 
                 scene.attachChild(tiles[i][j]);
@@ -155,7 +160,7 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
 
         if(Settings.isMultitouch()) {
             try {
-                zoomDetector = new PinchZoomDetector(this);
+                zoomDetector = new PinchZoomDetector(mapScroller);
             } catch (MultiTouchException e) {
                 zoomDetector = null;
             }
@@ -176,11 +181,6 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
     }
 
     @Override
-    public void onScroll(ScrollDetector pScollDetector, TouchEvent pTouchEvent, float pDistanceX, float pDistanceY) {
-        camera.offsetCenter(-pDistanceX, -pDistanceY);
-    }
-
-    @Override
     public boolean onSceneTouchEvent(Scene pScene, TouchEvent pSceneTouchEvent) {
         if(Settings.isMultitouch()) {
             zoomDetector.onTouchEvent(pSceneTouchEvent);
@@ -197,36 +197,13 @@ public class MainActivity extends BaseGameActivity implements ScrollDetector.ISc
             scrollDetector.onTouchEvent(pSceneTouchEvent);
         }
 
+        clickDetector.onTouchEvent(pSceneTouchEvent);
+
         return true;
     }
 
     @Override
     public void onClick(ClickDetector pClickDetector, TouchEvent pTouchEvent) {
-        //To change body of implemented methods use File | Settings | File Templates.
-    }
 
-    @Override
-    public void onPinchZoomStarted(PinchZoomDetector pPinchZoomDetector, TouchEvent pSceneTouchEvent) {
-        zoomFactor = camera.getZoomFactor();
-    }
-
-    @Override
-    public void onPinchZoom(PinchZoomDetector pPinchZoomDetector, TouchEvent pTouchEvent, float pZoomFactor) {
-        if(zoomFactor > 1)
-            camera.setZoomFactor(1);
-        else if(zoomFactor < .2f)
-            camera.setZoomFactor(.2f);
-        else
-            camera.setZoomFactor(zoomFactor * pZoomFactor);
-    }
-
-    @Override
-    public void onPinchZoomFinished(PinchZoomDetector pPinchZoomDetector, TouchEvent pTouchEvent, float pZoomFactor) {
-        if(zoomFactor > 1)
-            camera.setZoomFactor(1);
-        else if(zoomFactor < .2f)
-            camera.setZoomFactor(.2f);
-        else
-            camera.setZoomFactor(zoomFactor * pZoomFactor);
     }
 }
